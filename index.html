@@ -741,6 +741,10 @@ function togTaskPanel(lid,sid,tid,el){
 // ══════════════════════════════════════════════
 // ROUTINE HELPERS
 // ══════════════════════════════════════════════
+function task_history_today(task){
+  if(!task||!task.history||typeof task.history!=='object') return false;
+  return task.history[today()]===true;
+}
 function getRoutineToday(task){
   if(!task||!task.history||typeof task.history!=='object') return false;
   return task.history[today()]===true;
@@ -826,7 +830,8 @@ function renderListMain(){
         ${sub.tasks.map(t=>{
           if(!t.history||typeof t.history!=='object') t.history={};
           const isRoutine=sub.priority===0;
-          const isDone=isRoutine?getRoutineToday(t):t.done;
+          // For routine tasks: ONLY use today's history entry, never task.done
+          const isDone=isRoutine ? (task_history_today(t)) : (t.done===true);
           const cnt=isRoutine?getRoutineCount(t):0;
           const tc=t.color||'';
           return `<div class="task-item${isDone?' done':''}" id="task_${t.id}" style="${tc?'border-left:4px solid '+tc+';':''}">
