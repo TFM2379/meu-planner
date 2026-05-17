@@ -919,11 +919,11 @@ function togTask(lid,sid,tid){
   const task=sub?.tasks.find(t=>t.id===tid);
   if(!task||!sub)return;
   const isRoutine=(sub.priority===0);
+  alert('DEBUG: isRoutine='+isRoutine+' sub.priority='+sub.priority+' today='+today()+' task.done='+task.done);
   if(isRoutine){
     const d=today();
     if(!task.history||typeof task.history!=='object') task.history={};
     task.history[d] = !(task.history[d]===true);
-    // NEVER modify task.done for routine tasks
   } else {
     task.done = !task.done;
   }
