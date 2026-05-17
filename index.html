@@ -401,8 +401,15 @@ let eSubListId='', eSubId='', eTaskListId='', eTaskSubId='', eTaskId='';
 // UTILS
 // ══════════════════════════════════════════════
 function uid(){return Math.random().toString(36).slice(2,9);}
-function today(){return fmt(new Date());}
-function fmt(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;}
+function today(){
+  // Use local date to avoid timezone issues
+  const d=new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function fmt(d){
+  // Use local date for week grid
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
 function pad(n){return String(n).padStart(2,'0');}
 function t2m(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
 function m2t(m){return `${pad(Math.floor(m/60))}:${pad(m%60)}`;}
