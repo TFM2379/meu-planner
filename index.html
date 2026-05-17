@@ -684,7 +684,7 @@ function openPanel(ev,ds){
     const lst=state.lists.find(l=>l.id===ev.listId);
     if(lst){
       const total=lst.sublists.reduce((a,s)=>a+s.tasks.length,0);
-      const done=lst.sublists.reduce((a,s)=>a+s.tasks.filter(t=>t.done||getRoutineToday(t)).length,0);
+      const done=lst.sublists.reduce((a,s)=>a+s.tasks.filter(t=>s.priority===0?task_history_today(t):(t.done===true)).length,0);
       const pct=total?Math.round(done/total*100):0;
       h+=`<div class="panel-sec">Progresso</div>
         <div style="font-size:0.8rem;color:var(--ink2);margin-bottom:6px;">${done}/${total} tarefas · ${pct}%</div>
@@ -696,7 +696,7 @@ function openPanel(ev,ds){
       [...lst.sublists].sort((a,b)=>a.priority-b.priority).forEach(sub=>{
         h+=`<div style="font-size:0.65rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink3);margin:10px 0 4px;">${sub.name}</div>`;
         sub.tasks.forEach(t=>{
-          const isDone=sub.priority===0?getRoutineToday(t):t.done;
+          const isDone=sub.priority===0?task_history_today(t):(t.done===true);
           h+=`<div class="task-item${isDone?' done':''}" style="border-radius:6px;border:1px solid var(--border);margin-bottom:3px;">
             <div class="task-check" onclick="togTaskPanel('${lst.id}','${sub.id}','${t.id}',this)">${isDone?'✓':''}</div>
             <span>${t.text}</span></div>`;
@@ -727,9 +727,10 @@ function togTaskPanel(lid,sid,tid,el){
   const task=sub?.tasks.find(t=>t.id===tid);
   if(!task)return;
   if(sub.priority===0){
-    const d=today();if(!task.history)task.history={};
-    task.history[d]=!task.history[d];
-    const isDone=task.history[d];
+    const d=today();
+    if(!task.history||typeof task.history!=='object') task.history={};
+    task.history[d] = !(task.history[d]===true);
+    const isDone=task.history[d]===true;
     el.textContent=isDone?'✓':'';el.parentElement.classList.toggle('done',isDone);
   } else {
     task.done=!task.done;
@@ -762,7 +763,7 @@ function renderListNav(){
   if(!state.lists.length){nav.innerHTML='<div style="padding:14px;text-align:center;font-size:0.78rem;color:var(--ink3)">Nenhuma lista</div>';return;}
   nav.innerHTML=state.lists.map(l=>{
     const total=l.sublists.reduce((a,s)=>a+s.tasks.length,0);
-    const done=l.sublists.reduce((a,s)=>a+s.tasks.filter(t=>s.priority===0?getRoutineToday(t):t.done).length,0);
+    const done=l.sublists.reduce((a,s)=>a+s.tasks.filter(t=>s.priority===0?task_history_today(t):(t.done===true)).length,0);
     const lc=l.color||'';
     const isAct=l.id===state.activeListId;
     return `<div class="list-item${isAct?' active':''}" onclick="selList('${l.id}')"
@@ -782,7 +783,7 @@ function renderListMain(){
   const lst=state.lists.find(l=>l.id===state.activeListId);
   if(!lst){main.innerHTML=`<div class="no-list"><div class="ico">📋</div><h3>Selecione uma lista</h3><p>Escolha ao lado ou crie uma nova</p></div>`;return;}
   const total=lst.sublists.reduce((a,s)=>a+s.tasks.length,0);
-  const done=lst.sublists.reduce((a,s)=>a+s.tasks.filter(t=>s.priority===0?getRoutineToday(t):t.done).length,0);
+  const done=lst.sublists.reduce((a,s)=>a+s.tasks.filter(t=>s.priority===0?task_history_today(t):(t.done===true)).length,0);
   const pct=total?Math.round(done/total*100):0;
 
   let h=`<div class="list-hdr">
@@ -914,9 +915,10 @@ function togTask(lid,sid,tid){
   if(isRoutine){
     const d=today();
     if(!task.history||typeof task.history!=='object') task.history={};
-    task.history[d]= !(task.history[d]===true);
+    task.history[d] = !(task.history[d]===true);
+    // NEVER modify task.done for routine tasks
   } else {
-    task.done=!task.done;
+    task.done = !task.done;
   }
   saveState();renderListMain();renderListNav();
 }
