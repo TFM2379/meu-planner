@@ -1042,19 +1042,17 @@ let timer = null;
 
 // Override saveState to also save to Firebase
 window._fbSave = async function(){
-  clearTimeout(timer);
-  timer = setTimeout(async ()=>{
-    const bar=document.getElementById('syncBar');
-    bar.textContent='💾 Salvando...';bar.className='sync-bar show';
-    try{
-      await setDoc(REF,{events:state.events,lists:state.lists,activeListId:state.activeListId});
-      bar.textContent='✓ Salvo na nuvem';bar.className='sync-bar show ok';
-      setTimeout(()=>bar.classList.remove('show'),3000);
-    }catch(e){
-      bar.textContent='⚠️ Erro ao salvar: '+e.message;bar.className='sync-bar show err';
-      setTimeout(()=>bar.classList.remove('show'),6000);
-    }
-  },800);
+  // Save immediately — no delay
+  const bar=document.getElementById('syncBar');
+  bar.textContent='💾 Salvando...';bar.className='sync-bar show';
+  try{
+    await setDoc(REF,{events:state.events,lists:state.lists,activeListId:state.activeListId});
+    bar.textContent='✓ Salvo';bar.className='sync-bar show ok';
+    setTimeout(()=>bar.classList.remove('show'),2000);
+  }catch(e){
+    bar.textContent='⚠️ Erro: '+e.message;bar.className='sync-bar show err';
+    setTimeout(()=>bar.classList.remove('show'),6000);
+  }
 };
 
 // Load from Firebase and refresh UI
