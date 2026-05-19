@@ -1042,7 +1042,9 @@ let timer = null;
 
 // Override saveState to also save to Firebase
 window._fbSave = async function(){
-  // Save immediately — no delay
+  // Always save to localStorage first (instant, never fails)
+  saveLocal();
+  // Then save to Firebase in background
   const bar=document.getElementById('syncBar');
   bar.textContent='💾 Salvando...';bar.className='sync-bar show';
   try{
@@ -1050,8 +1052,9 @@ window._fbSave = async function(){
     bar.textContent='✓ Salvo';bar.className='sync-bar show ok';
     setTimeout(()=>bar.classList.remove('show'),2000);
   }catch(e){
-    bar.textContent='⚠️ Erro: '+e.message;bar.className='sync-bar show err';
-    setTimeout(()=>bar.classList.remove('show'),6000);
+    // Firebase failed but localStorage already saved - data is safe
+    bar.textContent='⚠️ Salvo localmente';bar.className='sync-bar show err';
+    setTimeout(()=>bar.classList.remove('show'),4000);
   }
 };
 
@@ -1062,42 +1065,30 @@ async function load(){
   try{
     const snap=await getDoc(REF);
     if(snap.exists()){
-      const d=snap.data();
-      state.events=d.events||[];
-      state.activeListId=d.activeListId||null;
-      // Merge lists: use Firebase data but preserve local done states
-      // since local is always more recent than Firebase
+      const fbData=snap.data();
+      // Get local data - it is ALWAYS the source of truth
       const localRaw=localStorage.getItem('plannerData');
       const local=localRaw?JSON.parse(localRaw):null;
-      if(local&&local.lists){
-        // Build a map of local task done states
-        const localDone={};
-        (local.lists||[]).forEach(l=>{
-          (l.sublists||[]).forEach(s=>{
-            (s.tasks||[]).forEach(t=>{
-              localDone[t.id]=t.done;
-            });
-          });
-        });
-        // Apply Firebase lists but restore local done states
-        state.lists=(d.lists||[]).map(l=>({
-          ...l,
-          sublists:(l.sublists||[]).map(s=>({
-            ...s,
-            tasks:(s.tasks||[]).map(t=>({
-              ...t,
-              done: localDone.hasOwnProperty(t.id) ? localDone[t.id] : t.done
-            }))
-          }))
-        }));
+      if(local&&local.lists&&local.lists.length>0){
+        // Local has data - use it entirely, ignore Firebase
+        // (local was already loaded at startup)
+        bar.textContent='✓ Dados carregados';bar.className='sync-bar show ok';
+        setTimeout(()=>bar.classList.remove('show'),3000);
       } else {
-        state.lists=d.lists||[];
+        // No local data - load from Firebase
+        state.events=fbData.events||[];
+        state.lists=fbData.lists||[];
+        state.activeListId=fbData.activeListId||null;
+        saveLocal();
+        bar.textContent='✓ Dados carregados';bar.className='sync-bar show ok';
+        setTimeout(()=>bar.classList.remove('show'),3000);
       }
     } else {
-      await setDoc(REF,{events:state.events,lists:state.lists,activeListId:null});
+      // First time - save current state to Firebase
+      await setDoc(REF,{events:state.events,lists:state.lists,activeListId:state.activeListId});
+      bar.textContent='✓ Pronto!';bar.className='sync-bar show ok';
+      setTimeout(()=>bar.classList.remove('show'),3000);
     }
-    bar.textContent='✓ Dados carregados';bar.className='sync-bar show ok';
-    setTimeout(()=>bar.classList.remove('show'),3000);
   }catch(e){
     bar.textContent='⚠️ '+e.message;bar.className='sync-bar show err';
     setTimeout(()=>bar.classList.remove('show'),7000);
