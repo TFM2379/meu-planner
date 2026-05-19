@@ -1064,8 +1064,35 @@ async function load(){
     if(snap.exists()){
       const d=snap.data();
       state.events=d.events||[];
-      state.lists=d.lists||[];
       state.activeListId=d.activeListId||null;
+      // Merge lists: use Firebase data but preserve local done states
+      // since local is always more recent than Firebase
+      const localRaw=localStorage.getItem('plannerData');
+      const local=localRaw?JSON.parse(localRaw):null;
+      if(local&&local.lists){
+        // Build a map of local task done states
+        const localDone={};
+        (local.lists||[]).forEach(l=>{
+          (l.sublists||[]).forEach(s=>{
+            (s.tasks||[]).forEach(t=>{
+              localDone[t.id]=t.done;
+            });
+          });
+        });
+        // Apply Firebase lists but restore local done states
+        state.lists=(d.lists||[]).map(l=>({
+          ...l,
+          sublists:(l.sublists||[]).map(s=>({
+            ...s,
+            tasks:(s.tasks||[]).map(t=>({
+              ...t,
+              done: localDone.hasOwnProperty(t.id) ? localDone[t.id] : t.done
+            }))
+          }))
+        }));
+      } else {
+        state.lists=d.lists||[];
+      }
     } else {
       await setDoc(REF,{events:state.events,lists:state.lists,activeListId:null});
     }
