@@ -434,8 +434,12 @@ function loadLocal(){
 // saveState and loadData will be set by module
 // ══════════════════════════════════════════════
 function saveState(){
+  // Always save to localStorage immediately
   saveLocal();
-  if(window._fbSave) window._fbSave();
+  // Try Firebase after short delay to ensure module is loaded
+  setTimeout(function(){
+    if(window._fbSave) window._fbSave();
+  }, 100);
 }
 
 // ══════════════════════════════════════════════
